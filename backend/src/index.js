@@ -1,8 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
+import express from 'express';
+import cors from 'cors';
+//const dotenv = require('dotenv');
+//const sequelize = require('./database/config/db.js');
 
-dotenv.config();
+import { connectDB } from './database/config/db.js';
+
+//dotenv.config();
 
 const app = express();
 
@@ -16,8 +19,9 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, (err) => {
+  connectDB();
   if (err) {
-    console.error('Failed to start server:', err);
+    console.error('Failed to start server on ${PORT} port:', err);
     return;
   }
   console.log(`Server is running on http://localhost:${PORT}`);
