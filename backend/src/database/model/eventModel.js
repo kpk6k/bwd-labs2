@@ -44,4 +44,4 @@ sequelize.sync().then(() => {
    console.error("Unable to create table 'events': ", err);
 });
 
-export { eventModel };
+export default eventModel;

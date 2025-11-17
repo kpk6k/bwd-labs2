@@ -4,7 +4,8 @@ import cors from 'cors';
 //const sequelize = require('./database/config/db.js');
 
 import { connectDB } from './database/config/db.js';
-import { userRouter } from './router/userRouter.js'
+import { userRouter } from './router/userRouter.js';
+import { eventRouter } from './router/eventRouter.js';
 
 //dotenv.config();
 
@@ -12,7 +13,8 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
-app.use(userRouter)
+app.use(userRouter);
+app.use(eventRouter);
 
 const PORT = process.env.PORT || 3000;
 
