@@ -2,22 +2,31 @@ import eventModel from "../database/model/eventModel.js";
 import userModel from "../database/model/userModel.js";
 
 
+/**
+ * @swagger
+ * /events:
+ *   get:
+ *     summary: Retrieve all events
+ *     tags: [Events]
+ *     responses:
+ *       200:
+ *         description: A list of all events
+ *       500:
+ *         description: Internal server error
+ */
+
 const getEvents = async (req, res, next) => {
     try {
-        // Получаем параметры page и limit из запроса
         const { page = 1, limit = 10 } = req.query;
 
-        // Преобразуем их в числа
         const pageNumber = parseInt(page);
         const limitNumber = parseInt(limit);
 		if (pageNumber < 1 || limitNumber < 1) {
     		return res.status(400).json({ message: "page and limit must be positive integers." });
 		}
 
-        // Вычисляем смещение
         const offset = (pageNumber - 1) * limitNumber;
 
-        // Получаем мероприятия с учетом пагинации
         const events = await eventModel.findAndCountAll({
             limit: limitNumber,
             offset: offset,
@@ -27,7 +36,6 @@ const getEvents = async (req, res, next) => {
             }]
         });
 
-        // Возвращаем данные о мероприятиях и общую информацию
         return res.status(200).json({
             total: events.count,
             page: pageNumber,
@@ -39,6 +47,20 @@ const getEvents = async (req, res, next) => {
     }
 }
 
+/**
+ * @swagger
+ * /events/id/{eventId}:
+ *   get:
+ *     summary: Get a specific event by ID
+ *     tags: [Events]
+ *     responses:
+ *       200:
+ *         description: Event details
+ *       400:
+ *         description: Event not found
+ *       500:
+ *         description: Internal server error
+ */
 
 const getEvent = async (req, res, next) => {
     try {
@@ -69,6 +91,44 @@ const getEvent = async (req, res, next) => {
     }
 }
 
+/**
+ * @swagger
+ * /events:
+ *   post:
+ *     summary: Create a new event
+ *     tags: [Events]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *               createdBy:
+ *                 type: integer
+ *               category:
+ *                 type: string
+ *             required:
+ *               - title
+ *               - date
+ *               - createdBy
+ *               - category
+ *     responses:
+ *       201:
+ *         description: Event created successfully
+ *       400:
+ *         description: Missing required fields, illegal category, or invalid date format
+ *       500:
+ *         description: Internal server error
+ */
+
 const createEvent = async (req, res, next) => {
     try {
         const { title, description, date, createdBy } = req.body
@@ -98,6 +158,39 @@ const createEvent = async (req, res, next) => {
         next(err)
     }
 }
+
+/**
+ * @swagger
+ * /events/{eventId}:
+ *   put:
+ *     summary: Update an existing event
+ *     tags: [Events]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *               createdBy:
+ *                 type: integer
+ *               category:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Event updated successfully
+ *       400:
+ *         description: Event not found or invalid date format
+ *       500:
+ *         description: Internal server error
+ */
 
 const updateEvent = async (req, res, next) => {
     try {
@@ -134,8 +227,20 @@ const updateEvent = async (req, res, next) => {
     }
 }
 
-
-
+/**
+ * @swagger
+ * /events/{eventId}:
+ *   delete:
+ *     summary: Delete an event
+ *     tags: [Events]
+ *     responses:
+ *       200:
+ *         description: Event deleted successfully
+ *       400:
+ *         description: Event not found
+ *       500:
+ *         description: Internal server error
+ */
 
 const deleteEvent = async (req, res, next) => {
     try {

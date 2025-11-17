@@ -1,11 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-//const dotenv = require('dotenv');
-//const sequelize = require('./database/config/db.js');
-
 import { connectDB } from './database/config/db.js';
 import { userRouter } from './router/userRouter.js';
 import { eventRouter } from './router/eventRouter.js';
+import { swaggerSpec } from './swagger.js';
+import swaggerUi from 'swagger-ui-express';
 
 //dotenv.config();
 
@@ -15,6 +14,7 @@ app.use(express.json());
 app.use(cors());
 app.use(userRouter);
 app.use(eventRouter);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const PORT = process.env.PORT || 3000;
 
