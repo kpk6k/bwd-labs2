@@ -6,17 +6,25 @@ import { userRouter } from './router/userRouter.js';
 import { eventRouter } from './router/eventRouter.js';
 import { swaggerSpec } from './swagger.js';
 import swaggerUi from 'swagger-ui-express';
+import rateLimit from 'express-rate-limit';
 
 //dotenv.config();
+
+const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    limit: 100,
+});
 
 const app = express();
 
 app.use(express.json());
 app.use(morgan(':method :url :status :response-time ms'));
 app.use(cors());
+app.use(limiter);
 app.use(userRouter);
 app.use(eventRouter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 const PORT = process.env.PORT || 3000;
 
