@@ -4,12 +4,41 @@ import userModel from "../database/model/userModel.js";
 
 const getEvents = async (req, res, next) => {
     try {
-        const events = await eventModel.findAll()
-        return res.status(200).json(events)
+        // Получаем параметры page и limit из запроса
+        const { page = 1, limit = 10 } = req.query;
+
+        // Преобразуем их в числа
+        const pageNumber = parseInt(page);
+        const limitNumber = parseInt(limit);
+		if (pageNumber < 1 || limitNumber < 1) {
+    		return res.status(400).json({ message: "page and limit must be positive integers." });
+		}
+
+        // Вычисляем смещение
+        const offset = (pageNumber - 1) * limitNumber;
+
+        // Получаем мероприятия с учетом пагинации
+        const events = await eventModel.findAndCountAll({
+            limit: limitNumber,
+            offset: offset,
+            include: [{
+                model: userModel,
+                attributes: ['id', 'name']
+            }]
+        });
+
+        // Возвращаем данные о мероприятиях и общую информацию
+        return res.status(200).json({
+            total: events.count,
+            page: pageNumber,
+            limit: limitNumber,
+            data: events.rows,
+        });
     } catch (e) {
         next(e)
     }
 }
+
 
 const getEvent = async (req, res, next) => {
     try {
