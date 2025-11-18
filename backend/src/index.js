@@ -3,14 +3,12 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { connectDB } from './database/config/db.js';
 import authRouter from "./router/authRouter.js";
-import { userRouter } from './router/userRouter.js';
-import { eventRouter } from './router/eventRouter.js';
+import publicRouter from './router/publicRouter.js';
+import router from './router/indexRouter.js';
 import { swaggerSpec } from './swagger.js';
 import swaggerUi from 'swagger-ui-express';
 import rateLimit from 'express-rate-limit';
 import passport from './database/config/passport.js';
-
-//dotenv.config();
 
 const limiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
@@ -19,7 +17,6 @@ const limiter = rateLimit({
 
 const app = express();
 
-//configurePassport(passport);
 app.use(passport.initialize());
 
 app.use(express.json());
@@ -28,8 +25,8 @@ app.use(cors());
 
 app.use(limiter);
 app.use(authRouter); 
-app.use(userRouter);
-app.use(eventRouter);
+app.use(publicRouter);
+app.use(router);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
