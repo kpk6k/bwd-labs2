@@ -50,9 +50,9 @@ import userModel from "../database/model/userModel.js";
 
 const createUser = async (req, res, next) => {
     try {
-        const { name, email } = req.body
-        if (!name || !email) {
-            return res.status(400).json({ message: "name and email required" })
+        const { name, email, password } = req.body
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "name, email and password required" })
         }
 
         // Check whether user already exists
@@ -62,7 +62,7 @@ const createUser = async (req, res, next) => {
         }
 
         // Create user if it not exists yet
-        const newUser = await userModel.create({ name, email, createdAt: new Date() });
+        const newUser = await userModel.create({ name, email, password, createdAt: new Date() });
         return res.status(201).json(newUser)
     } catch (err) {
         next(err);
