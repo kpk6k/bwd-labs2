@@ -1,4 +1,6 @@
 import userModel from "../database/model/userModel.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 /**
  * @swagger
@@ -50,9 +52,9 @@ import userModel from "../database/model/userModel.js";
 
 const createUser = async (req, res, next) => {
     try {
-        const { name, email } = req.body
-        if (!name || !email) {
-            return res.status(400).json({ message: "name and email required" })
+        const { name, email, password } = req.body
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "name, email and password required" })
         }
 
         // Check whether user already exists
@@ -62,7 +64,7 @@ const createUser = async (req, res, next) => {
         }
 
         // Create user if it not exists yet
-        const newUser = await userModel.create({ name, email, createdAt: new Date() });
+        const newUser = await userModel.create({ name, email, password, createdAt: new Date() });
         return res.status(201).json(newUser)
     } catch (err) {
         next(err);
@@ -110,4 +112,55 @@ const getUsers = async (req, res, next) => {
     }
 }
 
-export { getUsers, createUser }
+const loginUser = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "email and password required" });
+        }
+
+        // Find the user by email
+        const user = await userModel.findOne({ where: { email } });
+        if (!user) {
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+		// Check if account is locked
+        const currentTime = new Date();
+        if (user.isLocked && user.lockUntil > currentTime) {
+            return res.status(403).json({ message: "Account is locked. Please try again later." });
+        }
+
+        // Check password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            // Increase failed attempts
+            user.failed_attempts += 1;
+
+            // Lock the account if attempts exceed limit
+            if (user.failed_attempts > 5) {
+                user.isLocked = true;
+                user.lockUntil = new Date(currentTime.getTime() + 2 * 60 * 1000); // Lock for 2 minutes
+            }
+            await user.save();
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+		// Reset failed attempts and unlock account on successful login
+        user.failed_attempts = 0;
+        user.isLocked = false;
+        user.lockUntil = null;
+        await user.save();
+
+        // Generate JWT token
+        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+            expiresIn: '1h' // Token expires in 1 hour
+        });
+
+        return res.status(200).json({ message: "Login successful", token });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export { getUsers, createUser, loginUser }
