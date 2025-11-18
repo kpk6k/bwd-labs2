@@ -25,6 +25,17 @@ const userModel = sequelize.define('users', {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
+	failed_attempts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    },
+    isLocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    lockUntil: {
+        type: DataTypes.DATE,
+    },
     createdAt: DataTypes.DATE
 });
 

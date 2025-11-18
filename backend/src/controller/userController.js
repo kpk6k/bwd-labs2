@@ -125,11 +125,32 @@ const loginUser = async (req, res, next) => {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
+		// Check if account is locked
+        const currentTime = new Date();
+        if (user.isLocked && user.lockUntil > currentTime) {
+            return res.status(403).json({ message: "Account is locked. Please try again later." });
+        }
+
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            // Increase failed attempts
+            user.failed_attempts += 1;
+
+            // Lock the account if attempts exceed limit
+            if (user.failed_attempts > 5) {
+                user.isLocked = true;
+                user.lockUntil = new Date(currentTime.getTime() + 2 * 60 * 1000); // Lock for 2 minutes
+            }
+            await user.save();
             return res.status(401).json({ message: "Invalid email or password" });
         }
+
+		// Reset failed attempts and unlock account on successful login
+        user.failed_attempts = 0;
+        user.isLocked = false;
+        user.lockUntil = null;
+        await user.save();
 
         // Generate JWT token
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
