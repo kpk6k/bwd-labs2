@@ -17,6 +17,7 @@ const limiter = rateLimit({
 
 const app = express();
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(passport.initialize());
 
 app.use(express.json());
@@ -27,8 +28,6 @@ app.use(limiter);
 app.use(authRouter); 
 app.use(publicRouter);
 app.use(router);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 
 const PORT = process.env.PORT || 3000;
 
