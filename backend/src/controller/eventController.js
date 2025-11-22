@@ -6,13 +6,50 @@ import userModel from "../database/model/userModel.js";
  * @swagger
  * /events:
  *   get:
- *     summary: Retrieve all events
+ *     summary: Get paginated list of events
  *     tags: [Events]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (must be >= 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Items per page (must be >= 1)
  *     responses:
  *       200:
- *         description: A list of all events
- *       500:
- *         description: Internal server error
+ *         description: Paginated events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Event'
+ *       400:
+ *         description: Bad request (invalid page/limit)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  */
 
 const getEvents = async (req, res, next) => {
@@ -49,17 +86,35 @@ const getEvents = async (req, res, next) => {
 
 /**
  * @swagger
- * /events/id/{eventId}:
+ * /events/{eventId}:
  *   get:
- *     summary: Get a specific event by ID
+ *     summary: Get single event by id
  *     tags: [Events]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Event ID
  *     responses:
  *       200:
- *         description: Event details
+ *         description: Event object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Event'
  *       400:
- *         description: Event not found
- *       500:
- *         description: Internal server error
+ *         description: Bad request / not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
  */
 
 const getEvent = async (req, res, next) => {
@@ -95,38 +150,50 @@ const getEvent = async (req, res, next) => {
  * @swagger
  * /events:
  *   post:
- *     summary: Create a new event
- *     tags: [Events]
+ *     summary: Create new event
+ *     tags:
+ *       - Events
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               date:
- *                 type: string
- *                 format: date-time
- *               createdBy:
- *                 type: integer
- *               category:
- *                 type: string
  *             required:
  *               - title
  *               - date
  *               - createdBy
- *               - category
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Music Festival"
+ *               description:
+ *                 type: string
+ *                 example: "Annual open-air festival"
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-12-01T18:00:00.000Z"
+ *               createdBy:
+ *                 type: integer
+ *                 example: 1
  *     responses:
  *       201:
- *         description: Event created successfully
+ *         description: Created event
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Event'
  *       400:
- *         description: Missing required fields, illegal category, or invalid date format
- *       500:
- *         description: Internal server error
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Fields 'title', 'date', 'createdBy' required"
  */
 
 const createEvent = async (req, res, next) => {
@@ -163,8 +230,16 @@ const createEvent = async (req, res, next) => {
  * @swagger
  * /events/{eventId}:
  *   put:
- *     summary: Update an existing event
- *     tags: [Events]
+ *     summary: Update event by id
+ *     tags:
+ *       - Events
+ *     parameters:
+ *       - name: eventId
+ *         in: path
+ *         description: ID of the event to update
+ *         required: true
+ *         schema:
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -174,28 +249,65 @@ const createEvent = async (req, res, next) => {
  *             properties:
  *               title:
  *                 type: string
+ *                 example: "Updated title"
  *               description:
  *                 type: string
+ *                 example: "Updated description"
  *               date:
  *                 type: string
  *                 format: date-time
+ *                 example: "2025-12-02T18:00:00.000Z"
  *               createdBy:
  *                 type: integer
- *               category:
- *                 type: string
+ *                 example: 1
+ *           examples:
+ *             updateTitle:
+ *               summary: Update only title
+ *               value:
+ *                 title: "New Event Title"
+ *             updateDescription:
+ *               summary: Update only description
+ *               value:
+ *                 description: "Updated description for the event"
+ *             updateDate:
+ *               summary: Update only date
+ *               value:
+ *                 date: "2026-01-10T14:30:00.000Z"
+ *             updateCreatedBy:
+ *               summary: Update only createdBy
+ *               value:
+ *                 createdBy: 2
+ *             fullUpdate:
+ *               summary: Full update example
+ *               value:
+ *                 title: "Conference 2026"
+ *                 description: "Annual tech conference"
+ *                 date: "2026-03-15T09:00:00.000Z"
+ *                 createdBy: 2
  *     responses:
  *       200:
- *         description: Event updated successfully
+ *         description: Updated event
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Event'
  *       400:
- *         description: Event not found or invalid date format
- *       500:
- *         description: Internal server error
+ *         description: Validation error or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Event 123 not found"
  */
+
 
 const updateEvent = async (req, res, next) => {
     try {
         const { eventId } = req.params
-        const { title, description, date, createdBy, categoryId } = req.body
+        const { title, description, date, createdBy } = req.body
 
         let eventDate = null
 
@@ -231,15 +343,29 @@ const updateEvent = async (req, res, next) => {
  * @swagger
  * /events/{eventId}:
  *   delete:
- *     summary: Delete an event
- *     tags: [Events]
+ *     summary: Delete event by id
+ *     tags:
+ *       - Events
+ *     parameters:
+ *       - name: eventId
+ *         in: path
+ *         description: ID of the event
+ *         required: true
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
- *         description: Event deleted successfully
+ *         description: Deleted successfully (empty body)
  *       400:
- *         description: Event not found
- *       500:
- *         description: Internal server error
+ *         description: Not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Event No. 123 not found"
  */
 
 const deleteEvent = async (req, res, next) => {

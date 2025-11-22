@@ -4,50 +4,41 @@ import jwt from "jsonwebtoken";
 
 /**
  * @swagger
- * /users:
+ * /register:
  *   post:
- *     summary: Create a new user
+ *     summary: Register a new user
  *     tags: [Users]
- *     description: Creates a new user with the provided name and email. Email must be unique.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
- *           examples:
- *             example1:
- *               summary: Example user creation
- *               value:
- *                 name: "John Doe"
- *                 email: "john.doe@example.com"
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the user
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email of the user
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Password for the user
+ *                 example: "Pa$w0rd"
  *     responses:
  *       201:
  *         description: User created successfully
  *         content:
  *           application/json:
- *             examples:
- *               example1:
- *                 summary: Example response
- *                 value:
- *                   id: 1
- *                   name: "John Doe"
- *                   email: "john.doe@example.com"
- *                   createdAt: "2023-01-01T00:00:00.000Z"
- *                   updatedAt: "2023-01-01T00:00:00.000Z"
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Bad request - missing required fields or user already exists
- *         content:
- *           application/json:
- *             examples:
- *               missingFields:
- *                 summary: Missing required fields
- *                 value:
- *                   message: "name and email required"
- *               userExists:
- *                 summary: User already exists
- *                 value:
- *                   message: "user already exists"
+ *         description: Missing required fields or user already exists
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
 
 const createUser = async (req, res, next) => {
@@ -111,6 +102,52 @@ const getUsers = async (req, res, next) => {
         next(err)
     }
 }
+
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email of the user
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Password for the user
+ *                 example: "Pa$w0rd"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful"
+ *                 token:
+ *                   type: string
+ *                   description: JWT token for authentication
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Invalid email or password
+ *       403:
+ *         description: Account is locked
+ *       500:
+ *         description: Server error
+ */
 
 const loginUser = async (req, res, next) => {
     try {
