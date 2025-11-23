@@ -194,6 +194,16 @@ const getEvent = async (req, res, next) => {
  *                 message:
  *                   type: string
  *                   example: "Fields 'title', 'date', 'createdBy' required"
+ *       401:
+ *         description: Unauthorized — missing or invalid JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
  */
 
 const createEvent = async (req, res, next) => {
@@ -212,6 +222,11 @@ const createEvent = async (req, res, next) => {
                 message: "invalid date format, required YYYY-MM-DDTHH:mm:ss.sssZ "
             })
         }
+
+		const user = await userModel.findByPk(createdBy);
+    	if (!user) {
+      		return res.status(404).json({ message: `User with id ${createdBy} not found` });
+    	}
 
         const event = await eventModel.create({
             title,
@@ -301,8 +316,17 @@ const createEvent = async (req, res, next) => {
  *                 message:
  *                   type: string
  *                   example: "Event 123 not found"
+ *       401:
+ *         description: Unauthorized — missing or invalid JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
  */
-
 
 const updateEvent = async (req, res, next) => {
     try {
@@ -366,7 +390,18 @@ const updateEvent = async (req, res, next) => {
  *                 message:
  *                   type: string
  *                   example: "Event No. 123 not found"
+ *       401:
+ *         description: Unauthorized — missing or invalid JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
  */
+
 
 const deleteEvent = async (req, res, next) => {
     try {

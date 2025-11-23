@@ -58,6 +58,10 @@ const createUser = async (req, res, next) => {
         const newUser = await userModel.create({ name, email, password, createdAt: new Date() });
         return res.status(201).json(newUser)
     } catch (err) {
+	// Sequelize validation
+		if (err.name === 'SequelizeValidationError' || err.name === 'ValidationError') {
+    		return res.status(400).json({ message: 'Validation error', errors: err.errors?.map(e => e.message) || [] });
+  		}
         next(err);
     }
 }
@@ -90,6 +94,16 @@ const createUser = async (req, res, next) => {
  *                     email: "jane.smith@example.com"
  *                     createdAt: "2023-01-02T00:00:00.000Z"
  *                     updatedAt: "2023-01-02T00:00:00.000Z"
+ *       401:
+ *         description: Unauthorized — missing or invalid JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
  *       500:
  *         description: Internal server error
  */

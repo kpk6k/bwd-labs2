@@ -24,4 +24,19 @@ passport.use(
     })
 );
 
-export default passport;
+const requireJwt = (req, res, next) => {
+  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Authentication error', error: err.message });
+    }
+    if (!user) {
+      const msg = 'Unauthorized';
+      return res.status(401).json({ message: msg });
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+};
+
+export { passport, requireJwt };
