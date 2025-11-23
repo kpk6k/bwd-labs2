@@ -38,7 +38,7 @@ import userModel from "./userModel.js"
 // Define 'events' model
 const eventModel = sequelize.define('events', {
     id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
         unique: true,
         autoIncrement: true,
@@ -57,7 +57,7 @@ const eventModel = sequelize.define('events', {
         allowNull: false,
     },
     createdBy: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
         references: {
             model: userModel,
