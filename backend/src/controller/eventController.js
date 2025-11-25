@@ -208,11 +208,12 @@ const getEvent = async (req, res, next) => {
 
 const createEvent = async (req, res, next) => {
     try {
-        const { title, description, date, createdBy } = req.body
+        const { title, description, date } = req.body;
+		const createdBy = req.user && req.user.id;
 
-        if (!title || !date || !createdBy) {
+        if (!title || !date) {
             return res.status(400).json({
-                message: "Fields 'title', 'date', 'createdBy' required"
+                message: "Fields 'title', 'date', required"
             })
         }
 
@@ -223,11 +224,6 @@ const createEvent = async (req, res, next) => {
             })
         }
 
-		const user = await userModel.findByPk(createdBy);
-    	if (!user) {
-      		return res.status(404).json({ message: `User with id ${createdBy} not found` });
-    	}
-
         const event = await eventModel.create({
             title,
             description,
@@ -235,7 +231,12 @@ const createEvent = async (req, res, next) => {
             createdBy
         })
 
-        return res.status(201).json(event)
+        return res.status(201).json({
+			title: event.title,
+			description: event.description,
+			date: event.date,
+			createdAt: event.createdAt
+		})
     } catch(err) {
         next(err)
     }
