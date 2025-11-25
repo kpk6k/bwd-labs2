@@ -64,11 +64,12 @@ const getEvents = async (req, res, next) => {
         const offset = (pageNumber - 1) * limitNumber;
 
         const events = await eventModel.findAndCountAll({
+			attributes: ['title', 'description', 'date'],
             limit: limitNumber,
             offset: offset,
             include: [{
                 model: userModel,
-                attributes: ['id', 'name']
+                attributes: ['name']
             }]
         });
 
@@ -127,10 +128,11 @@ const getEvent = async (req, res, next) => {
         filter.id = eventId
 
         const event = await eventModel.findOne({
+			attributes: ['title', 'description', 'date'],
             where: filter,
             include: [{
                 model: userModel,
-                attributes: ['id', 'name']
+                attributes: ['name']
             }]
         })
 
@@ -329,7 +331,7 @@ const createEvent = async (req, res, next) => {
 const updateEvent = async (req, res, next) => {
     try {
         const { eventId } = req.params
-        const { title, description, date, createdBy } = req.body
+        const { title, description, date } = req.body
 
         let eventDate = null
 
@@ -348,14 +350,16 @@ const updateEvent = async (req, res, next) => {
             return res.status(400).json({ message: `Event ${eventId} not found` })
         }
 
-        event.id = eventId || event.id
         event.title = title || event.title;
         event.description = description || event.description;
         event.date = date || event.date;
-        event.createdBy = createdBy || event.createdBy;
         await event.save()
 
-        return res.status(200).json(event)
+        return res.status(200).json({
+			title: event.title,
+			description: event.description,
+			date: event.description,
+		});
     } catch(err) {
         next(err)
     }
@@ -413,7 +417,7 @@ const deleteEvent = async (req, res, next) => {
 
         await event.destroy()
 
-        return res.status(200).send()
+        return res.status(200).json({ message: `Event No. $ {eventId} deleted` });
     } catch(err) {
         next(err)
     }

@@ -32,10 +32,6 @@ import jwt from "jsonwebtoken";
  *     responses:
  *       201:
  *         description: User created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
  *       400:
  *         description: Missing required fields or user already exists
  *       500:
@@ -57,7 +53,11 @@ const createUser = async (req, res, next) => {
 
         // Create user if it not exists yet
         const newUser = await userModel.create({ name, email, password, createdAt: new Date() });
-        return res.status(201).json(newUser)
+        return res.status(201).json({
+			name: newUser.name,
+			email: newUser.email,
+			createdAt: newUser.createdAt
+		});
     } catch (err) {
 	// Sequelize validation
 		if (err.name === 'SequelizeValidationError' || err.name === 'ValidationError') {
@@ -73,7 +73,6 @@ const createUser = async (req, res, next) => {
  *   get:
  *     summary: Retrieve all users
  *     tags: [Users]
- *     security: []
  *     description: Returns a list of all users in the system
  *     responses:
  *       200:
@@ -112,10 +111,12 @@ const createUser = async (req, res, next) => {
 
 const getUsers = async (req, res, next) => {
     try {
-        const users = await userModel.findAll()
-        return res.status(200).json(users)
+        const users = await userModel.findAll({
+			attributes: ['name', 'email']
+		});
+        return res.status(200).json(users);
     } catch (err) {
-        next(err)
+        next(err);
     }
 }
 
@@ -125,6 +126,7 @@ const getUsers = async (req, res, next) => {
  *   post:
  *     summary: Log in a user
  *     tags: [Users]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
