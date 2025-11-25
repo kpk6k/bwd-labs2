@@ -8,8 +8,7 @@ import userModel from "../database/model/userModel.js";
  *   get:
  *     summary: Get paginated list of events
  *     tags: [Events]
- *     security:
- *       - BearerAuth: []
+ *     security: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -90,8 +89,7 @@ const getEvents = async (req, res, next) => {
  *   get:
  *     summary: Get single event by id
  *     tags: [Events]
- *     security:
- *       - BearerAuth: []
+ *     security: []
  *     parameters:
  *       - in: path
  *         name: eventId

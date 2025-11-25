@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
  *   post:
  *     summary: Register a new user
  *     tags: [Users]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -72,6 +73,7 @@ const createUser = async (req, res, next) => {
  *   get:
  *     summary: Retrieve all users
  *     tags: [Users]
+ *     security: []
  *     description: Returns a list of all users in the system
  *     responses:
  *       200:
