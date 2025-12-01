@@ -1,6 +1,8 @@
 import userModel from "../database/model/userModel.js";
+import userSession from '../database/model/userSessionModel.js';
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendSecurityEmail } from '../utils/mailer.js';
 
 /**
  * @swagger
@@ -207,6 +209,51 @@ const loginUser = async (req, res, next) => {
         user.lockUntil = null;
         await user.save();
 
+		const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+		const userAgent = (req.get('user-agent') || '').slice(0, 1000);
+		const N = 3;
+		
+		// fetch last N sessions
+		const sessions = await userSession.findAll({
+  		where: { userId: user.id },
+  		order: [['lastSeenAt', 'DESC']],
+  		limit: N
+		});
+		
+		const ipKnown = sessions.some(s => s.ip === ip);
+		const uaKnown = sessions.some(s => s.userAgent === userAgent);
+		
+		if (!ipKnown || !uaKnown) {
+  			// create session record
+  			await userSession.create({ userId: user.id, ip, userAgent, lastSeenAt: new Date() });
+		
+  			// trim to last N 
+  			(async () => {
+    			try {
+      				const all = await userSession.findAll({ where: { userId: user.id }, order: [['lastSeenAt', 'DESC']] });
+      				if (all.length > N) {
+        				const idsToRemove = all.slice(N).map(r => r.id);
+        				await userSession.destroy({ where: { id: idsToRemove }});
+      				}
+    			} catch (e) { console.error('Session cleanup error', e); }
+  			})();
+		
+  			// send security email (don't block response)
+  			const subject = 'New sign-in to your account';
+  			const text = `We detected a sign-in to your account from a new device or IP.
+Email: ${user.email}
+IP: ${ip}
+User-Agent: ${userAgent}
+If this was you, no action is required. If not, please reset your password immediately.`;
+  			sendSecurityEmail(user.email, subject, text, `<pre>${text}</pre>`).catch(console.error);
+		} else {
+  			// update lastSeenAt for matching session (prefer exact match of both fields)
+  			const match = sessions.find(s => s.ip === ip && s.userAgent === userAgent) || sessions[0];
+  			if (match) {
+    			await match.update({ lastSeenAt: new Date() });
+  			}
+		}
+		
         // Generate JWT token
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
             expiresIn: '1h' // Token expires in 1 hour
