@@ -1,14 +1,14 @@
-import Router from 'express';
+import { Router } from 'express';
 import passport from 'passport';
 import { requireJwt } from '../database/config/passport.js';
-import { getUsers, createUser} from '../controller/userController.js';
+import { getUsers, createUser } from '../controller/userController.js';
 import {
     createEvent,
     updateEvent,
-    deleteEvent
+    deleteEvent,
 } from '../controller/eventController.js';
 
-const router = new Router();
+const router = Router();
 
 //router.use(passport.authenticate("jwt", { session: false }));
 router.post('/events/', requireJwt, createEvent);
@@ -17,4 +17,4 @@ router.delete('/events/:eventId', requireJwt, deleteEvent);
 router.get('/users', requireJwt, getUsers);
 router.post('/users', requireJwt, createUser);
 
-export default router;
+export { router };

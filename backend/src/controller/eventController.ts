@@ -1,6 +1,6 @@
-import eventModel from "../database/model/eventModel.js";
-import userModel from "../database/model/userModel.js";
-
+import { Request, Response, NextFunction } from 'express';
+import eventModel from '../database/model/eventModel.js';
+import User from '../database/model/userModel.js';
 
 /**
  * @swagger
@@ -51,26 +51,29 @@ import userModel from "../database/model/userModel.js";
  *                   type: string
  */
 
-const getEvents = async (req, res, next) => {
+const getEvents = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-
-        const pageNumber = parseInt(page);
-        const limitNumber = parseInt(limit);
-		if (pageNumber < 1 || limitNumber < 1) {
-    		return res.status(400).json({ message: "page and limit must be positive integers." });
-		}
+        const pageNumber = parseInt(page as string);
+        const limitNumber = parseInt(limit as string);
+        if (pageNumber < 1 || limitNumber < 1) {
+            return res
+                .status(400)
+                .json({ message: 'page and limit must be positive integers.' });
+        }
 
         const offset = (pageNumber - 1) * limitNumber;
 
         const events = await eventModel.findAndCountAll({
-			attributes: ['title', 'description', 'date'],
+            attributes: ['title', 'description', 'date'],
             limit: limitNumber,
             offset: offset,
-            include: [{
-                model: userModel,
-                attributes: ['name']
-            }]
+            include: [
+                {
+                    model: User,
+                    attributes: ['name'],
+                },
+            ],
         });
 
         return res.status(200).json({
@@ -80,9 +83,9 @@ const getEvents = async (req, res, next) => {
             data: events.rows,
         });
     } catch (e) {
-        next(e)
+        next(e);
     }
-}
+};
 
 /**
  * @swagger
@@ -116,35 +119,39 @@ const getEvents = async (req, res, next) => {
  *                   type: string
  */
 
-const getEvent = async (req, res, next) => {
+const getEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { eventId } = req.params
+        const { eventId } = req.params;
 
-        if(!eventId) {
-            return res.status(400).json({ message: "'eventId' required" })
+        if (!eventId) {
+            return res.status(400).json({ message: "'eventId' required" });
         }
 
-        const filter = {}
-        filter.id = eventId
+        //const filterId = { eventId };
+        //filter.id = eventId
 
         const event = await eventModel.findOne({
-			attributes: ['title', 'description', 'date'],
-            where: filter,
-            include: [{
-                model: userModel,
-                attributes: ['name']
-            }]
-        })
+            attributes: ['title', 'description', 'date'],
+            where: { id: eventId },
+            include: [
+                {
+                    model: User,
+                    attributes: ['name'],
+                },
+            ],
+        });
 
-        if(!event) {
-            return res.status(400).json({ message: `Event No. ${ eventId } not found` })
+        if (!event) {
+            return res
+                .status(400)
+                .json({ message: `Event No. ${eventId} not found` });
         }
 
-        return res.status(200).json(event)
-    } catch(err) {
-        next(err)
+        return res.status(200).json(event);
+    } catch (err) {
+        next(err);
     }
-}
+};
 
 /**
  * @swagger
@@ -174,9 +181,6 @@ const getEvent = async (req, res, next) => {
  *                 type: string
  *                 format: date-time
  *                 example: "2025-12-01T18:00:00.000Z"
- *               createdBy:
- *                 type: integer
- *                 example: 1
  *     responses:
  *       201:
  *         description: Created event
@@ -206,41 +210,42 @@ const getEvent = async (req, res, next) => {
  *                   example: "Unauthorized"
  */
 
-const createEvent = async (req, res, next) => {
+const createEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { title, description, date } = req.body;
-		const createdBy = req.user && req.user.id;
+        const createdBy = (req.user as User).id;
 
         if (!title || !date) {
             return res.status(400).json({
-                message: "Fields 'title', 'date', required"
-            })
+                message: "Fields 'title', 'date', required",
+            });
         }
 
-        const eventDate = new Date(date)
+        const eventDate = new Date(date);
         if (isNaN(eventDate.getTime())) {
             return res.status(400).json({
-                message: "invalid date format, required YYYY-MM-DDTHH:mm:ss.sssZ "
-            })
+                message:
+                    'invalid date format, required YYYY-MM-DDTHH:mm:ss.sssZ ',
+            });
         }
 
         const event = await eventModel.create({
             title,
             description,
             date,
-            createdBy
-        })
+            createdBy,
+        });
 
         return res.status(201).json({
-			title: event.title,
-			description: event.description,
-			date: event.date,
-			createdAt: event.createdAt
-		})
-    } catch(err) {
-        next(err)
+            title: event.title,
+            description: event.description,
+            date: event.date,
+            createdAt: event.createdAt,
+        });
+    } catch (err) {
+        next(err);
     }
-}
+};
 
 /**
  * @swagger
@@ -329,42 +334,45 @@ const createEvent = async (req, res, next) => {
  *                   example: "Unauthorized"
  */
 
-const updateEvent = async (req, res, next) => {
+const updateEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { eventId } = req.params
-        const { title, description, date } = req.body
+        const { eventId } = req.params;
+        const { title, description, date } = req.body;
 
-        let eventDate = null
+        let eventDate = null;
 
         if (date) {
-            eventDate = new Date(date)
+            eventDate = new Date(date);
             if (isNaN(eventDate.getTime())) {
                 return res.status(400).json({
-                    message: "Invalid date format, required YYYY-MM-DDTHH:mm:ss.sssZ "
-                })
+                    message:
+                        'Invalid date format, required YYYY-MM-DDTHH:mm:ss.sssZ ',
+                });
             }
         }
 
-        const event = await eventModel.findOne({ where: { id: eventId } })
+        const event = await eventModel.findOne({ where: { id: eventId } });
 
         if (!event) {
-            return res.status(400).json({ message: `Event ${eventId} not found` })
+            return res
+                .status(400)
+                .json({ message: `Event ${eventId} not found` });
         }
 
         event.title = title || event.title;
         event.description = description || event.description;
         event.date = date || event.date;
-        await event.save()
+        await event.save();
 
         return res.status(200).json({
-			title: event.title,
-			description: event.description,
-			date: event.description,
-		});
-    } catch(err) {
-        next(err)
+            title: event.title,
+            description: event.description,
+            date: event.date,
+        });
+    } catch (err) {
+        next(err);
     }
-}
+};
 
 /**
  * @swagger
@@ -405,23 +413,26 @@ const updateEvent = async (req, res, next) => {
  *                   example: "Unauthorized"
  */
 
-
-const deleteEvent = async (req, res, next) => {
+const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { eventId } = req.params
+        const { eventId } = req.params;
 
-        const event = await eventModel.findOne({ where: { id: eventId } })
+        const event = await eventModel.findOne({ where: { id: eventId } });
 
         if (!event) {
-            return res.status(400).json({ message: `Event No. ${eventId} not found` })
+            return res
+                .status(400)
+                .json({ message: `Event No. ${eventId} not found` });
         }
 
-        await event.destroy()
+        await event.destroy();
 
-        return res.status(200).json({ message: `Event No. $ {eventId} deleted` });
-    } catch(err) {
-        next(err)
+        return res
+            .status(200)
+            .json({ message: `Event No. ${eventId} deleted` });
+    } catch (err) {
+        next(err);
     }
-}
+};
 
-export { getEvents, getEvent, createEvent, updateEvent, deleteEvent }
+export { getEvents, getEvent, createEvent, updateEvent, deleteEvent };
