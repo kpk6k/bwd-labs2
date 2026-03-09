@@ -55,6 +55,7 @@ userSession.init(
     },
 );
 
+User.hasMany(userSession, { foreignKey: 'userId' });
 userSession.belongsTo(User, { foreignKey: 'userId' });
 
 sequelize

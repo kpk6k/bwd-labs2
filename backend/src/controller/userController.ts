@@ -62,8 +62,8 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
             email,
             password,
             createdAt: new Date(),
-            failed_attempts: 0,
-            isLocked: false,
+            //failed_attempts: 0,
+            //isLocked: false,
         });
         return res.status(201).json({
             name: newUser.name,

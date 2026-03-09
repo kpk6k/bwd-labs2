@@ -61,7 +61,10 @@ export interface UserAttributes {
     createdAt?: Date;
 }
 
-type UserCreationAttributes = Optional<UserAttributes, 'id'>;
+type UserCreationAttributes = Optional<
+    UserAttributes,
+    'id' | 'failed_attempts' | 'isLocked' | 'lockUntil'
+>;
 
 class User
     extends Model<UserAttributes, UserCreationAttributes>
@@ -117,7 +120,7 @@ User.init(
     {
         sequelize,
         modelName: 'users',
-        timestamps: false,
+        timestamps: true,
     },
 );
 
