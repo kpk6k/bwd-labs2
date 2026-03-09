@@ -8,7 +8,7 @@ import { router } from './router/indexRouter';
 import { swaggerSpec } from './swagger';
 import swaggerUi from 'swagger-ui-express';
 import rateLimit from 'express-rate-limit';
-import { passport } from './database/config/passport';
+//import { passport } from './database/config/passport';
 
 const limiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
@@ -23,7 +23,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 app.use(morgan(':method :url :status :response-time ms'));
 app.use(cors());
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     if (err instanceof SyntaxError && 'body' in err) {
         return res.status(400).json({ message: 'Invalid JSON payload' });
     }
@@ -34,7 +34,7 @@ app.use(authRouter);
 app.use(publicRouter);
 app.use(router);
 // 404 handler
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response) => {
     res.status(404).json({
         message: 'Not Found',
         path: req.originalUrl,
@@ -48,7 +48,7 @@ app.get('/', (req: Request, res: Response) => {
     res.json({ message: 'Hello, World!' });
 });
 
-app.listen(PORT, (err: any) => {
+app.listen(PORT, (err: unknown) => {
     if (err) {
         console.error(`Failed to start server on ${PORT} port:`, err);
         return;

@@ -1,29 +1,45 @@
 import globals from 'globals';
-import pluginJs from '@eslint/js';
+import eslintRecommended from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettierPlugin from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
 
-/** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
-    pluginJs.configs.recommended,
-    ...tseslint.configs.recommended,
+    // Ignore all JavaScript files
     {
-        files: ['**/*.{js,mjs,cjs,ts}'],
+        ignores: ['**/*.js'],
+    },
+
+    // Base ESLint recommended rules
+    eslintRecommended.configs.recommended,
+
+    // TypeScript recommended rules
+    ...tseslint.configs.recommended,
+
+    // Your custom configuration
+    {
         languageOptions: {
-            globals: {
-                ...globals.browser,
-                ...globals.node,
+            parser: tseslint.parser,
+            parserOptions: {
+                ecmaVersion: 'latest',
+                sourceType: 'module',
             },
+            globals: globals.node, // Node.js global variables
         },
         plugins: {
+            '@typescript-eslint': tseslint.plugin,
             prettier: prettierPlugin,
         },
         rules: {
-            '@typescript-eslint/explicit-function-return-type': 'off',
-            '@typescript-eslint/no-unused-vars': ['off'],
-            //'prettier/prettier': 'off',
-            '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-empty-object-type': 'off',
+            'prettier/prettier': 'error',
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                { argsIgnorePattern: '^_' },
+            ],
+            '@typescript-eslint/no-explicit-any': 'warn',
         },
     },
+
+    // Turn off ESLint rules that conflict with Prettier
+    prettierConfig,
 ];

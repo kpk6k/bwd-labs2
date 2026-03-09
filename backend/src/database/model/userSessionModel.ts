@@ -10,10 +10,7 @@ export interface UserSessionAttributes {
     lastSeenAt: Date;
 }
 
-interface UserSessionCreationAttributes extends Optional<
-    UserSessionAttributes,
-    'id'
-> {}
+type UserSessionCreationAttributes = Optional<UserSessionAttributes, 'id'>;
 
 class userSession
     extends Model<UserSessionAttributes, UserSessionCreationAttributes>

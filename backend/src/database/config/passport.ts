@@ -7,6 +7,7 @@ import passport from 'passport';
 import User from '../model/userModel';
 import dotenv from 'dotenv';
 import { Request, Response, NextFunction } from 'express';
+import { type JwtPayload } from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ const options: StrategyOptions = {
 };
 
 passport.use(
-    new JwtStrategy(options, async (payload: any, done) => {
+    new JwtStrategy(options, async (payload: JwtPayload, done) => {
         try {
             const user = await User.findByPk(payload.id);
             if (user) {
@@ -33,15 +34,15 @@ const requireJwt = (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate(
         'jwt',
         { session: false },
-        (err: any, user: Express.User | false) => {
+        (err: unknown, user: Express.User | false) => {
             if (err) {
                 console.error(err);
-                return res
-                    .status(500)
-                    .json({
-                        message: 'Authentication error',
-                        error: err.message,
-                    });
+                const message =
+                    err instanceof Error ? err.message : 'Unknown error';
+                return res.status(500).json({
+                    message: 'Authentication error',
+                    error: message,
+                });
             }
             if (!user) {
                 const msg = 'Unauthorized';

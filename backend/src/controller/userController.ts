@@ -70,16 +70,18 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
             email: newUser.email,
             createdAt: newUser.createdAt,
         });
-    } catch (err: any) {
+    } catch (err) {
         // Sequelize validation
-        if (
-            err.name === 'SequelizeValidationError' ||
-            err.name === 'ValidationError'
-        ) {
-            return res.status(400).json({
-                message: 'Validation error',
-                errors: err.errors?.map((e: any) => e.message) || [],
-            });
+        if (err instanceof Error) {
+            if (
+                err.name === 'SequelizeValidationError' ||
+                err.name === 'ValidationError'
+            ) {
+                return res.status(400).json({
+                    message: 'Validation error',
+                    errors: err.message || [],
+                });
+            }
         }
         next(err);
     }
@@ -206,11 +208,9 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
         const currentTime = new Date();
         if (user.lockUntil !== null) {
             if (user.isLocked && user.lockUntil > currentTime) {
-                return res
-                    .status(403)
-                    .json({
-                        message: 'Account is locked. Please try again later.',
-                    });
+                return res.status(403).json({
+                    message: 'Account is locked. Please try again later.',
+                });
             }
         }
         // Check password
