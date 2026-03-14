@@ -36,7 +36,6 @@ const EventCard: React.FC<EventCardProps> = ({event, onDelete}) => {
   return (
     <div className={styles.card} onClick={handleCardClick} ref={cardRef}>
       <h3 className={styles.title}>{event.title}</h3>
-      <p className={styles.category}>Category: {event.category}</p>
       {event.description && (
         <p className={styles.description}>{event.description}</p>
       )}

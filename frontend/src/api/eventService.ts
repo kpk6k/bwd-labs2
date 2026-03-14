@@ -26,5 +26,6 @@ export const createEvent = async (
 };
 
 export const deleteEvent = async (id: number): Promise<void> => {
-  await axiosInstance.delete(`/events/id/${id}`);
+  console.log('Deleting event with id:', id);
+  await axiosInstance.delete(`/events/${id}`);
 };

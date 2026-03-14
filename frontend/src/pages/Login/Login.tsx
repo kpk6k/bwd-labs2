@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {login as apiLogin} from '../../api/authService';
 import {getUsers} from '../../api/userService';
-import {setAccessToken, setRefreshToken} from '../../utils/storage';
+import {setAccessToken} from '../../utils/storage';
 import {decodeToken} from '../../utils/token';
 import {useAuth} from '../../contexts/AuthContext';
 import Button from '../../components/Button/Button';
@@ -31,33 +31,39 @@ const Login: React.FC = () => {
     try {
       // 1. Perform login request
       const loginResponse = await apiLogin({email, password});
-      const {accessToken, refreshToken} = loginResponse;
+      const accessToken = loginResponse.token;
 
       // 2. Store tokens IMMEDIATELY so they are available for subsequent requests
       setAccessToken(accessToken);
-      setRefreshToken(refreshToken);
 
       // 3. Decode token to get user ID
       const payload = decodeToken(accessToken);
+	  console.log('Decoded payload:', payload); // ЧТО ВЕРНУЛО?
       if (!payload) {
         throw new Error('Invalid token');
       }
 
       // 4. Fetch user details (now authenticated because tokens are stored)
       const users = await getUsers();
-      const currentUser = users.find((u) => u.id === payload.id);
+	  console.log(users);
+      const currentUser = {
+      	id: payload.id,
+      	email: payload.email,
+      	name: payload.name || email.split('@')[0] 
+      };
+	  console.log(payload.id);
+	  console.log(currentUser);
       if (!currentUser) {
         throw new Error('User not found');
       }
 
       // 5. Update auth context with user (tokens are already stored)
-      login(accessToken, refreshToken, currentUser);
+      login(accessToken, currentUser);
 
       navigate('/events');
     } catch (err: any) {
       // Clear any partially stored tokens on error
       setAccessToken('');
-      setRefreshToken('');
       const message =
         err.response?.data?.message || err.message || 'Login failed';
       setError(message);

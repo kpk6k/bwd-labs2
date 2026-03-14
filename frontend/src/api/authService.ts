@@ -7,8 +7,7 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   message: string;
-  accessToken: string;
-  refreshToken: string;
+  token: string;
 }
 
 export interface RegisterData {
@@ -41,12 +40,5 @@ export const register = async (
     '/register',
     data
   );
-  return response.data;
-};
-
-export const refreshToken = async (
-  refreshToken: string
-): Promise<{accessToken: string; refreshToken: string}> => {
-  const response = await axiosInstance.post('/refresh', {refreshToken});
   return response.data;
 };

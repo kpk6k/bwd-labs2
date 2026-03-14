@@ -6,14 +6,12 @@ import {
   setUser as setStoredUser,
   removeUser,
   setAccessToken,
-  setRefreshToken,
   removeAccessToken,
-  removeRefreshToken,
 } from '../utils/storage';
 
 interface AuthContextType {
   user: User | null;
-  login: (accessToken: string, refreshToken: string, user: User) => void;
+  login: (accessToken: string, user: User) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -32,16 +30,14 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({children}) => {
     setIsLoading(false);
   }, []);
 
-  const login = (accessToken: string, refreshToken: string, userData: User) => {
+  const login = (accessToken: string, userData: User) => {
     setAccessToken(accessToken);
-    setRefreshToken(refreshToken);
     setStoredUser(userData);
     setUser(userData);
   };
 
   const logout = () => {
     removeAccessToken();
-    removeRefreshToken();
     removeUser();
     setUser(null);
   };

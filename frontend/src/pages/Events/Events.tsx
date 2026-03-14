@@ -20,6 +20,14 @@ const getErrorMessage = (error: unknown): string => {
   return 'An unexpected error occurred';
 };
 
+// Интерфейс для ответа с пагинацией
+interface EventsResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: Event[];
+}
+
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -31,10 +39,14 @@ const Events: React.FC = () => {
     title: '',
     description: '',
     date: '',
-    category: 'education' as const,
   });
   const [submitting, setSubmitting] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10
+  });
   const navigate = useNavigate();
   const {user, isLoading: authLoading} = useAuth();
 
@@ -51,8 +63,30 @@ const Events: React.FC = () => {
 
   const fetchEvents = async () => {
     try {
-      const data = await getEvents();
-      setEvents(data);
+	  const response = await getEvents();
+      console.log('API response:', response);
+
+      if (response && typeof response === 'object') {
+        if ('data' in response && Array.isArray(response.data)) {
+		  console.log('First event structure:', response.data[0]);
+          console.log('All keys in first event:', Object.keys(response.data[0]));
+          // Ответ с пагинацией: { data: [...], total, page, limit }
+          setEvents(response.data);
+          setPagination({
+            total: response.total || 0,
+            page: response.page || 1,
+            limit: response.limit || 10
+          });
+        } else if (Array.isArray(response)) {
+          // Простой массив событий
+          setEvents(response);
+        } else {
+          console.error('Неизвестный формат ответа:', response);
+          setEvents([]);
+        }
+      } else {
+        setEvents([]);
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -79,7 +113,6 @@ const Events: React.FC = () => {
         title: formData.title,
         description: formData.description || null,
         date: dateIso,
-        category: formData.category,
         createdBy: user.id,
       });
       setModalOpen(false);
@@ -87,7 +120,6 @@ const Events: React.FC = () => {
         title: '',
         description: '',
         date: '',
-        category: 'education',
       });
       fetchEvents();
     } catch (err: unknown) {
@@ -98,6 +130,7 @@ const Events: React.FC = () => {
   };
 
   const handleDeleteClick = (id: number) => {
+    console.log('Delete clicked for event id:', id);
     setEventToDelete(id);
     setDeleteModalOpen(true);
   };
@@ -158,6 +191,11 @@ const Events: React.FC = () => {
   return (
     <div className={styles.events}>
       <h1>Events</h1>
+	  {pagination.total > 0 && (
+        <div className={styles.paginationInfo}>
+          Total events: {pagination.total}
+        </div>
+      )}
       <ErrorDisplay message={error} onClose={() => setError(null)} />
 
       {events.length > 0 && (
@@ -247,23 +285,6 @@ const Events: React.FC = () => {
                   required
                   disabled={submitting}
                 />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="category">Category *</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                  disabled={submitting}
-                >
-                  <option value="education">Education</option>
-                  <option value="amusement">Amusement</option>
-                  <option value="work">Work</option>
-                  <option value="hobby">Hobby</option>
-                  <option value="other">Other</option>
-                </select>
               </div>
               <div className={styles.modalActions}>
                 <Button
