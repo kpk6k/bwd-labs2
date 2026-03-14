@@ -9,22 +9,22 @@ import NotFound from './pages/NotFound/NotFound';
 import styles from './App.module.scss';
 
 function App() {
-  return (
-    <AuthProvider>
-      <div className={styles.app}>
-        <Header />
-        <main className={styles.main}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-      </div>
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <div className={styles.app}>
+                <Header />
+                <main className={styles.main}>
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/events" element={<Events />} />
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                </main>
+            </div>
+        </AuthProvider>
+    );
 }
 
 export default App;

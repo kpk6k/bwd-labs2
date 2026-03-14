@@ -10,108 +10,114 @@ import ErrorDisplay from '../../components/ErrorDisplay/ErrorDisplay';
 import styles from './Login.module.scss';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const {user, login} = useAuth();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const {user, login} = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      navigate('/events');
-    }
-  }, [user, navigate]);
+    useEffect(() => {
+        if (user) {
+            navigate('/events');
+        }
+    }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
 
-    try {
-      // 1. Perform login request
-      const loginResponse = await apiLogin({email, password});
-      const accessToken = loginResponse.token;
+        try {
+            // 1. Perform login request
+            const loginResponse = await apiLogin({email, password});
+            const accessToken = loginResponse.token;
 
-      // 2. Store tokens IMMEDIATELY so they are available for subsequent requests
-      setAccessToken(accessToken);
+            // 2. Store tokens IMMEDIATELY so they are available for subsequent requests
+            setAccessToken(accessToken);
 
-      // 3. Decode token to get user ID
-      const payload = decodeToken(accessToken);
-	  console.log('Decoded payload:', payload); // ЧТО ВЕРНУЛО?
-      if (!payload) {
-        throw new Error('Invalid token');
-      }
+            // 3. Decode token to get user ID
+            const payload = decodeToken(accessToken);
+            console.log('Decoded payload:', payload); // ЧТО ВЕРНУЛО?
+            if (!payload) {
+                throw new Error('Invalid token');
+            }
 
-      // 4. Fetch user details (now authenticated because tokens are stored)
-      const users = await getUsers();
-	  console.log(users);
-      const currentUser = {
-      	id: payload.id,
-      	email: payload.email,
-      	name: payload.name || email.split('@')[0] 
-      };
-	  console.log(payload.id);
-	  console.log(currentUser);
-      if (!currentUser) {
-        throw new Error('User not found');
-      }
+            // 4. Fetch user details (now authenticated because tokens are stored)
+            const users = await getUsers();
+            console.log(users);
+            const currentUser = {
+                id: payload.id,
+                email: payload.email,
+                name: payload.name || email.split('@')[0],
+            };
+            console.log(payload.id);
+            console.log(currentUser);
+            if (!currentUser) {
+                throw new Error('User not found');
+            }
 
-      // 5. Update auth context with user (tokens are already stored)
-      login(accessToken, currentUser);
+            // 5. Update auth context with user (tokens are already stored)
+            login(accessToken, currentUser);
 
-      navigate('/events');
-    } catch (err: any) {
-      // Clear any partially stored tokens on error
-      setAccessToken('');
-      const message =
-        err.response?.data?.message || err.message || 'Login failed';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+            navigate('/events');
+        } catch (err: any) {
+            // Clear any partially stored tokens on error
+            setAccessToken('');
+            const message =
+                err.response?.data?.message || err.message || 'Login failed';
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  return (
-    <div className={styles.container}>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <h2>Login</h2>
-        <ErrorDisplay message={error} onClose={() => setError(null)} />
+    return (
+        <div className={styles.container}>
+            <form onSubmit={handleSubmit} className={styles.form}>
+                <h2>Login</h2>
+                <ErrorDisplay message={error} onClose={() => setError(null)} />
 
-        <div className={styles.field}>
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-          />
+                <div className={styles.field}>
+                    <label htmlFor="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading}
+                    />
+                </div>
+
+                <div className={styles.field}>
+                    <label htmlFor="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                    />
+                </div>
+
+                <Button
+                    type="submit"
+                    variant="primary"
+                    fullWidth
+                    disabled={loading}
+                >
+                    {loading ? 'Logging in...' : 'Login'}
+                </Button>
+
+                <p className={styles.link}>
+                    Don't have an account?{' '}
+                    <Link to="/register">Register here</Link>
+                </p>
+            </form>
         </div>
-
-        <div className={styles.field}>
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-
-        <Button type="submit" variant="primary" fullWidth disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Button>
-
-        <p className={styles.link}>
-          Don't have an account? <Link to="/register">Register here</Link>
-        </p>
-      </form>
-    </div>
-  );
+    );
 };
 
 export default Login;
