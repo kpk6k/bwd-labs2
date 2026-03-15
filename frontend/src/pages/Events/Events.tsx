@@ -255,6 +255,7 @@ const Events: React.FC = () => {
                             key={event.id}
                             event={event}
                             onDelete={handleDeleteClick}
+                            currentUserId={user?.id}
                         />
                     ))}
                 </div>

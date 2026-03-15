@@ -17,6 +17,8 @@ const Header: React.FC = () => {
         }, 50);
     };
 
+    console.log('User in Header:', user); // ДОБАВЬТЕ ЭТУ СТРОКУ
+
     return (
         <header className={styles.header}>
             <div className={styles.logo}>

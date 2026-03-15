@@ -6,4 +6,7 @@ export interface Event {
     createdBy: number;
     createdAt?: string;
     updatedAt?: string;
+    user?: {
+        name: string;
+    };
 }

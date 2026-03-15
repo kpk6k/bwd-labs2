@@ -65,13 +65,13 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
         const offset = (pageNumber - 1) * limitNumber;
 
         const events = await eventModel.findAndCountAll({
-            attributes: ['id', 'title', 'description', 'date'],
+            attributes: ['id', 'title', 'description', 'date', 'createdBy'],
             limit: limitNumber,
             offset: offset,
             include: [
                 {
                     model: User,
-                    attributes: ['name'],
+                    attributes: ['id', 'name'],
                 },
             ],
         });

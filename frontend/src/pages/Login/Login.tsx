@@ -58,6 +58,8 @@ const Login: React.FC = () => {
             }
 
             // 5. Update auth context with user (tokens are already stored)
+            console.log('User data before login:', currentUser);
+            console.log('User keys:', Object.keys(currentUser));
             login(accessToken, currentUser);
 
             navigate('/events');
