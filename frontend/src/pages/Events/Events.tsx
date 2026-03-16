@@ -1,6 +1,6 @@
-import React, {useEffect, useState, useMemo} from 'react';
+import React, {useEffect, useState, useMemo, useCallback} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {getEvents, createEvent, deleteEvent} from '../../api/eventService';
+import {getEvents, createEvent, deleteEvent, restoreEvent} from '../../api/eventService';
 import {useAuth} from '../../contexts/AuthContext';
 import EventCard from './components/EventCard';
 import Button from '../../components/Button/Button';
@@ -44,6 +44,7 @@ const Events: React.FC = () => {
     });
     const [submitting, setSubmitting] = useState(false);
     const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+    const [showDeleted, setShowDeleted] = useState(false);
     const [pagination, setPagination] = useState({
         total: 0,
         page: 1,
@@ -61,21 +62,25 @@ const Events: React.FC = () => {
         if (user) {
             fetchEvents();
         }
-    }, [user, authLoading, navigate]);
+    }, [
+        user,
+        authLoading,
+        navigate,
+        pagination.page,
+        pagination.limit,
+        showDeleted,
+    ]);
 
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         try {
-            const response = await getEvents();
-            console.log('API response:', response);
+            const response = await getEvents({
+                page: pagination.page,
+                limit: pagination.limit,
+                includeDeleted: showDeleted,
+            });
 
             if (response && typeof response === 'object') {
                 if ('data' in response && Array.isArray(response.data)) {
-                    console.log('First event structure:', response.data[0]);
-                    console.log(
-                        'All keys in first event:',
-                        Object.keys(response.data[0])
-                    );
-                    // Ответ с пагинацией: { data: [...], total, page, limit }
                     setEvents(response.data);
                     setPagination({
                         total: response.total || 0,
@@ -97,7 +102,7 @@ const Events: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [pagination.page, pagination.limit, showDeleted]);
 
     const handleInputChange = (
         e: React.ChangeEvent<
@@ -138,6 +143,18 @@ const Events: React.FC = () => {
         console.log('Delete clicked for event id:', id);
         setEventToDelete(id);
         setDeleteModalOpen(true);
+    };
+
+    const handleRestoreClick = async (id: number) => {
+        try {
+            setSubmitting(true);
+            await restoreEvent(id);
+            fetchEvents();
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const confirmDelete = async () => {
@@ -207,8 +224,8 @@ const Events: React.FC = () => {
             )}
             <ErrorDisplay message={error} onClose={() => setError(null)} />
 
-            {events.length > 0 && (
-                <div className={styles.controls}>
+            <div className={styles.controls}>
+                <div className={styles.filterGroup}>
                     <div className={styles.filter}>
                         <label htmlFor="dateFilter">Show: </label>
                         <select
@@ -225,18 +242,40 @@ const Events: React.FC = () => {
                             <option value="month">This month</option>
                         </select>
                     </div>
-                    <Button
-                        variant="primary"
-                        onClick={() => setModalOpen(true)}
-                    >
-                        New event
-                    </Button>
+
+                    <div className={styles.toggleSwitch}>
+                        <label className={styles.switch}>
+                            <input
+                                type="checkbox"
+                                checked={showDeleted}
+                                onChange={(e) => {
+                                    setShowDeleted(e.target.checked);
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        page: 1,
+                                    }));
+                                }}
+                            />
+                            <span className={styles.slider}></span>
+                        </label>
+                        <span className={styles.toggleLabel}>
+                            Show deleted events
+                        </span>
+                    </div>
                 </div>
-            )}
+
+                <Button variant="primary" onClick={() => setModalOpen(true)}>
+                    New event
+                </Button>
+            </div>
 
             {events.length === 0 ? (
                 <div className={styles.emptyState}>
-                    <p className={styles.emptyMessage}>Events. No any</p>
+                    <p className={styles.emptyMessage}>
+                        {showDeleted
+                            ? 'No deleted events found'
+                            : 'No events yet'}
+                    </p>
                     <Button
                         variant="primary"
                         onClick={() => setModalOpen(true)}
@@ -255,9 +294,48 @@ const Events: React.FC = () => {
                             key={event.id}
                             event={event}
                             onDelete={handleDeleteClick}
+                            onRestore={handleRestoreClick}
                             currentUserId={user?.id}
                         />
                     ))}
+                </div>
+            )}
+
+            {pagination.total > pagination.limit && (
+                <div className={styles.pagination}>
+                    <Button
+                        variant="secondary"
+                        onClick={() =>
+                            setPagination((prev) => ({
+                                ...prev,
+                                page: prev.page - 1,
+                            }))
+                        }
+                        disabled={pagination.page === 1 || submitting}
+                    >
+                        Previous
+                    </Button>
+                    <span className={styles.pageInfo}>
+                        Page {pagination.page} of{' '}
+                        {Math.ceil(pagination.total / pagination.limit)}
+                    </span>
+                    <Button
+                        variant="secondary"
+                        onClick={() =>
+                            setPagination((prev) => ({
+                                ...prev,
+                                page: prev.page + 1,
+                            }))
+                        }
+                        disabled={
+                            pagination.page >=
+                                Math.ceil(
+                                    pagination.total / pagination.limit
+                                ) || submitting
+                        }
+                    >
+                        Next
+                    </Button>
                 </div>
             )}
 
