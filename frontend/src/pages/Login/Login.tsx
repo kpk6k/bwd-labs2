@@ -1,21 +1,17 @@
 import React, {useState, useEffect} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {login as apiLogin} from '../../api/authService';
-import {getUsers} from '../../api/userService';
-import {setAccessToken} from '../../utils/storage';
-import {decodeToken} from '../../utils/token';
-import {useAuth} from '../../contexts/AuthContext';
+import {useNavigate, Link} from 'react-router-dom';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {login, clearError} from '../../store/slices/authSlice';
 import Button from '../../components/Button/Button';
 import ErrorDisplay from '../../components/ErrorDisplay/ErrorDisplay';
 import styles from './Login.module.scss';
 
 const Login: React.FC = () => {
+    const dispatch = useAppDispatch();
+    const {user, isLoading, error} = useAppSelector((state) => state.auth);
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
-    const {user, login} = useAuth();
 
     useEffect(() => {
         if (user) {
@@ -25,60 +21,17 @@ const Login: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
-        setLoading(true);
-
-        try {
-            // 1. Perform login request
-            const loginResponse = await apiLogin({email, password});
-            const accessToken = loginResponse.token;
-
-            // 2. Store tokens IMMEDIATELY so they are available for subsequent requests
-            setAccessToken(accessToken);
-
-            // 3. Decode token to get user ID
-            const payload = decodeToken(accessToken);
-            console.log('Decoded payload:', payload); // ЧТО ВЕРНУЛО?
-            if (!payload) {
-                throw new Error('Invalid token');
-            }
-
-            // 4. Fetch user details (now authenticated because tokens are stored)
-            const users = await getUsers();
-            console.log(users);
-            const currentUser = {
-                id: payload.id,
-                email: payload.email,
-                name: payload.name || email.split('@')[0],
-            };
-            console.log(payload.id);
-            console.log(currentUser);
-            if (!currentUser) {
-                throw new Error('User not found');
-            }
-
-            // 5. Update auth context with user (tokens are already stored)
-            console.log('User data before login:', currentUser);
-            console.log('User keys:', Object.keys(currentUser));
-            login(accessToken, currentUser);
-
-            navigate('/events');
-        } catch (err: any) {
-            // Clear any partially stored tokens on error
-            setAccessToken('');
-            const message =
-                err.response?.data?.message || err.message || 'Login failed';
-            setError(message);
-        } finally {
-            setLoading(false);
-        }
+        dispatch(login({email, password}));
     };
 
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit} className={styles.form}>
                 <h2>Login</h2>
-                <ErrorDisplay message={error} onClose={() => setError(null)} />
+                <ErrorDisplay
+                    message={error}
+                    onClose={() => dispatch(clearError())}
+                />
 
                 <div className={styles.field}>
                     <label htmlFor="email">Email</label>
@@ -88,7 +41,7 @@ const Login: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        disabled={loading}
+                        disabled={isLoading}
                     />
                 </div>
 
@@ -100,7 +53,7 @@ const Login: React.FC = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        disabled={loading}
+                        disabled={isLoading}
                     />
                 </div>
 
@@ -108,9 +61,9 @@ const Login: React.FC = () => {
                     type="submit"
                     variant="primary"
                     fullWidth
-                    disabled={loading}
+                    disabled={isLoading}
                 >
-                    {loading ? 'Logging in...' : 'Login'}
+                    {isLoading ? 'Logging in...' : 'Login'}
                 </Button>
 
                 <p className={styles.link}>

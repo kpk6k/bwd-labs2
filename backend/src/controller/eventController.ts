@@ -260,12 +260,16 @@ const createEvent = async (req: Request, res: Response, next: NextFunction) => {
             createdBy,
         });
 
-        return res.status(201).json({
-            title: event.title,
-            description: event.description,
-            date: event.date,
-            createdAt: event.createdAt,
+		const eventWithUser = await eventModel.findByPk(event.id, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'name'],
+                },
+            ],
         });
+
+        return res.status(201).json(eventWithUser);
     } catch (err) {
         next(err);
     }
@@ -388,11 +392,16 @@ const updateEvent = async (req: Request, res: Response, next: NextFunction) => {
         event.date = date || event.date;
         await event.save();
 
-        return res.status(200).json({
-            title: event.title,
-            description: event.description,
-            date: event.date,
+		const updatedEvent = await eventModel.findByPk(eventId, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['name'],
+                },
+            ],
         });
+
+        return res.status(200).json(updatedEvent);
     } catch (err) {
         next(err);
     }
@@ -510,6 +519,28 @@ const restoreEvent = async (
     }
 };
 
+const getMyEvents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+): Promise<void> => {
+    try {
+        const userId = (req.user as { id: number }).id;
+        const events = await eventModel.findAll({
+            where: { createdBy: userId },
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'name'],
+                },
+            ],
+        });
+        res.status(200).json(events);
+    } catch (err) {
+        next(err);
+    }
+};
+
 export {
     getEvents,
     getEvent,
@@ -517,4 +548,5 @@ export {
     updateEvent,
     deleteEvent,
     restoreEvent,
+    getMyEvents,
 };

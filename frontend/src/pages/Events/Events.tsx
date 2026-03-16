@@ -1,154 +1,103 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {getEvents, createEvent, deleteEvent, restoreEvent} from '../../api/eventService';
-import {useAuth} from '../../contexts/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import {
+  fetchEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  restoreEvent,
+  setFilter,
+  setShowDeleted,
+  clearError,
+} from '../../store/slices/eventsSlice';
+import type { DateFilter } from '../../store/slices/eventsSlice';
 import EventCard from './components/EventCard';
+import EventForm from '../../components/EventForm/EventForm';
+import type { EventFormValues } from '../../components/EventForm/EventForm';
 import Button from '../../components/Button/Button';
+import Loading from '../../components/Loading/Loading';
 import ErrorDisplay from '../../components/ErrorDisplay/ErrorDisplay';
 import styles from './Events.module.scss';
 import type {Event} from '../../types/event';
 
-type DateFilter = 'all' | 'today' | 'week' | 'month';
-
-// Helper to extract error message from unknown error
-const getErrorMessage = (error: unknown): string => {
-    if (error && typeof error === 'object' && 'response' in error) {
-        const err = error as any;
-        return (
-            err.response?.data?.message || err.message || 'An error occurred'
-        );
-    }
-    if (error instanceof Error) return error.message;
-    return 'An unexpected error occurred';
-};
-
-// Интерфейс для ответа с пагинацией
-/*interface EventsResponse {
-  total: number;
-  page: number;
-  limit: number;
-  data: Event[];
-}
-*/
 const Events: React.FC = () => {
-    const [events, setEvents] = useState<Event[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+	const { events, loading, error, filter } = useAppSelector(
+    	(state) => state.events
+	);
+ 	const { user } = useAppSelector((state) => state.auth);
+	
     const [modalOpen, setModalOpen] = useState(false);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [eventToDelete, setEventToDelete] = useState<number | null>(null);
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        date: '',
-    });
+    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+	const [deleteId, setDeleteId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [dateFilter, setDateFilter] = useState<DateFilter>('all');
     const [showDeleted, setShowDeleted] = useState(false);
     const [pagination, setPagination] = useState({
         total: 0,
         page: 1,
         limit: 10,
     });
-    const navigate = useNavigate();
-    const {user, isLoading: authLoading} = useAuth();
 
     useEffect(() => {
-        if (!authLoading && !user) {
-            navigate('/login');
-            return;
-        }
+        dispatch(fetchEvents({
+			includeDeleted: showDeleted,
+			page: pagination.page,
+			limit: pagination.limit
+	}));
+	}, [dispatch, showDeleted, pagination.page, pagination.limit]);
 
-        if (user) {
-            fetchEvents();
-        }
-    }, [
-        user,
-        authLoading,
-        navigate,
-        pagination.page,
-        pagination.limit,
-        showDeleted,
-    ]);
+	const openCreateModal = () => {
+    	setEditingEvent(null);
+    	setModalOpen(true);
+	};
 
-    const fetchEvents = useCallback(async () => {
-        try {
-            const response = await getEvents({
-                page: pagination.page,
-                limit: pagination.limit,
-                includeDeleted: showDeleted,
-            });
+    const openEditModal = (id: number) => {
+		const event = events.find((e) => e.id === id);
+    	if (event) {
+      		setEditingEvent(event);
+      		setModalOpen(true);
+		}
 
-            if (response && typeof response === 'object') {
-                if ('data' in response && Array.isArray(response.data)) {
-                    setEvents(response.data);
-                    setPagination({
-                        total: response.total || 0,
-                        page: response.page || 1,
-                        limit: response.limit || 10,
-                    });
-                } else if (Array.isArray(response)) {
-                    // Простой массив событий
-                    setEvents(response);
-                } else {
-                    console.error('Неизвестный формат ответа:', response);
-                    setEvents([]);
-                }
-            } else {
-                setEvents([]);
-            }
-        } catch (err: unknown) {
-            setError(getErrorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, [pagination.page, pagination.limit, showDeleted]);
+	};
 
-    const handleInputChange = (
-        e: React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >
-    ) => {
-        const {name, value} = e.target;
-        setFormData((prev) => ({...prev, [name]: value}));
+    const closeModal = () => {
+    	setModalOpen(false);
+    	setEditingEvent(null);
     };
 
-    const handleCreateEvent = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleFormSubmit = async (data: EventFormValues) => {
         if (!user) return;
         setSubmitting(true);
         try {
-            const dateIso = new Date(formData.date).toISOString();
-            await createEvent({
-                title: formData.title,
-                description: formData.description || null,
-                date: dateIso,
+			const payload = {
+				...data,
+				description: data.description || null,
                 createdBy: user.id,
-            });
-            setModalOpen(false);
-            setFormData({
-                title: '',
-                description: '',
-                date: '',
-            });
-            fetchEvents();
-        } catch (err: unknown) {
-            setError(getErrorMessage(err));
+			};
+
+			if (editingEvent) {
+				await dispatch(
+					updateEvent({ id: editingEvent.id, data: payload })
+				).unwrap();
+			} else {
+				await dispatch(createEvent(payload)).unwrap();
+			}
+			closeModal();
+		} catch {
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleDeleteClick = (id: number) => {
-        console.log('Delete clicked for event id:', id);
-        setEventToDelete(id);
-        setDeleteModalOpen(true);
+		setDeleteId(id);
     };
 
     const handleRestoreClick = async (id: number) => {
         try {
             setSubmitting(true);
-            await restoreEvent(id);
+        	const result = await dispatch(restoreEvent(id)).unwrap();
+            //await restoreEvent(id);
             fetchEvents();
         } catch (err: unknown) {
             setError(getErrorMessage(err));
@@ -158,29 +107,22 @@ const Events: React.FC = () => {
     };
 
     const confirmDelete = async () => {
-        if (!eventToDelete) return;
+        if (!deleteId) return;
         setSubmitting(true);
         try {
-            await deleteEvent(eventToDelete);
-            setDeleteModalOpen(false);
-            setEventToDelete(null);
-            fetchEvents();
-        } catch (err: unknown) {
-            setError(getErrorMessage(err));
-            setDeleteModalOpen(false);
+			await dispatch(deleteEvent(deleteId)).unwrap();
+			setDeleteId(null);
+		} catch {
+      // error handled
         } finally {
             setSubmitting(false);
         }
     };
 
-    const cancelDelete = () => {
-        setDeleteModalOpen(false);
-        setEventToDelete(null);
-    };
+	const cancelDelete = () => setDeleteId(null);
 
-    // Date filter logic – fixed no-case-declarations by using {}
-    const filteredEvents = useMemo(() => {
-        if (dateFilter === 'all') return events;
+  // Filter events based on selected filter
+	const filteredEvents = (() => {
 
         const now = new Date();
         const today = new Date(
@@ -191,28 +133,23 @@ const Events: React.FC = () => {
 
         return events.filter((event) => {
             const eventDate = new Date(event.date);
-            switch (dateFilter) {
-                case 'today': {
-                    const tomorrow = new Date(today.getTime() + 86400000);
-                    return eventDate >= today && eventDate < tomorrow;
-                }
-                case 'week': {
-                    const weekAgo = new Date(today.getTime() - 7 * 86400000);
-                    return eventDate >= weekAgo;
-                }
-                case 'month': {
-                    const monthAgo = new Date(today.getTime() - 30 * 86400000);
-                    return eventDate >= monthAgo;
-                }
+			switch (filter) {
+				case 'today':
+					return (
+            			eventDate >= today &&
+            			eventDate < new Date(today.getTime() + 86400000)
+          			);
+        		case 'week':
+          			return eventDate >= new Date(today.getTime() - 7 * 86400000);
+        		case 'month':
+          			return eventDate >= new Date(today.getTime() - 30 * 86400000);
                 default:
                     return true;
             }
         });
-    }, [events, dateFilter]);
+    })();
 
-    if (authLoading)
-        return <div className={styles.loading}>Checking authentication...</div>;
-    if (loading) return <div className={styles.loading}>Loading events...</div>;
+    if (loading && !events.length) return <Loading />;
 
     return (
         <div className={styles.events}>
@@ -222,38 +159,31 @@ const Events: React.FC = () => {
                     Total events: {pagination.total}
                 </div>
             )}
-            <ErrorDisplay message={error} onClose={() => setError(null)} />
+                  <ErrorDisplay message={error} onClose={() => dispatch(clearError())} />
 
-            <div className={styles.controls}>
-                <div className={styles.filterGroup}>
-                    <div className={styles.filter}>
-                        <label htmlFor="dateFilter">Show: </label>
-                        <select
-                            id="dateFilter"
-                            value={dateFilter}
-                            onChange={(e) =>
-                                setDateFilter(e.target.value as DateFilter)
-                            }
-                            disabled={submitting}
-                        >
-                            <option value="all">All</option>
-                            <option value="today">Today</option>
-                            <option value="week">This week</option>
-                            <option value="month">This month</option>
-                        </select>
-                    </div>
-
-                    <div className={styles.toggleSwitch}>
+      <div className={styles.controls}>
+        <div className={styles.filter}>
+          <label htmlFor="filter">Show: </label>
+          <select
+            id="filter"
+            value={filter}
+            onChange={(e) => dispatch(setFilter(e.target.value as DateFilter))}
+          >
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="week">This week</option>
+            <option value="month">This month</option>
+          </select>
+            </div>
+			<div className={styles.toggleSwitch}>
                         <label className={styles.switch}>
                             <input
                                 type="checkbox"
                                 checked={showDeleted}
                                 onChange={(e) => {
-                                    setShowDeleted(e.target.checked);
-                                    setPagination((prev) => ({
-                                        ...prev,
-                                        page: 1,
-                                    }));
+									const checked = e.target.checked;
+    							dispatch(setShowDeleted(checked));
+                                    setPagination(prev => ({ ...prev, page: 1 }));
                                 }}
                             />
                             <span className={styles.slider}></span>
@@ -262,30 +192,13 @@ const Events: React.FC = () => {
                             Show deleted events
                         </span>
                     </div>
-                </div>
-
-                <Button variant="primary" onClick={() => setModalOpen(true)}>
-                    New event
-                </Button>
-            </div>
-
-            {events.length === 0 ? (
+			        <Button variant="primary" onClick={openCreateModal}>
+          New Event
+        </Button>
+      </div>
+            {filteredEvents.length === 0 ? (
                 <div className={styles.emptyState}>
-                    <p className={styles.emptyMessage}>
-                        {showDeleted
-                            ? 'No deleted events found'
-                            : 'No events yet'}
-                    </p>
-                    <Button
-                        variant="primary"
-                        onClick={() => setModalOpen(true)}
-                    >
-                        New event
-                    </Button>
-                </div>
-            ) : filteredEvents.length === 0 ? (
-                <div className={styles.noMatch}>
-                    No events match the selected filter.
+                    <p>No events found.</p>
                 </div>
             ) : (
                 <div className={styles.grid}>
@@ -341,74 +254,32 @@ const Events: React.FC = () => {
 
             {/* Create Event Modal */}
             {modalOpen && (
-                <div
-                    className={styles.modalOverlay}
-                    onClick={() => setModalOpen(false)}
-                >
+                <div className={styles.modalOverlay} onClick={closeModal}>
                     <div
                         className={styles.modal}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3>Create New Event</h3>
-                        <form onSubmit={handleCreateEvent}>
-                            <div className={styles.field}>
-                                <label htmlFor="title">Title *</label>
-                                <input
-                                    type="text"
-                                    id="title"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    required
-                                    disabled={submitting}
-                                />
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="description">Description</label>
-                                <textarea
-                                    id="description"
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    disabled={submitting}
-                                />
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="date">Date & Time *</label>
-                                <input
-                                    type="datetime-local"
-                                    id="date"
-                                    name="date"
-                                    value={formData.date}
-                                    onChange={handleInputChange}
-                                    required
-                                    disabled={submitting}
-                                />
-                            </div>
-                            <div className={styles.modalActions}>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() => setModalOpen(false)}
-                                    disabled={submitting}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    disabled={submitting}
-                                >
-                                    {submitting ? 'Creating...' : 'Create'}
-                                </Button>
-                            </div>
-                        </form>
+                                    <h3>{editingEvent ? 'Edit Event' : 'Create Event'}</h3>
+            <EventForm
+              initialValues={
+                editingEvent
+                  ? {
+                      title: editingEvent.title,
+                      description: editingEvent.description || '',
+                      date: editingEvent.date,
+                    }
+                  : undefined
+              }
+              onSubmit={handleFormSubmit}
+              onCancel={closeModal}
+              isSubmitting={submitting}
+            />
                     </div>
                 </div>
             )}
 
             {/* Delete Confirmation Modal */}
-            {deleteModalOpen && (
+            {deleteId && (
                 <div className={styles.modalOverlay} onClick={cancelDelete}>
                     <div
                         className={`${styles.modal} ${styles.deleteModal}`}

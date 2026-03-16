@@ -11,12 +11,14 @@ export interface EventsResponse {
     total: number;
     page: number;
     limit: number;
+	showDeleted?: boolean;
     data: Event[];
 }
 
 export const getEvents = async (
     params?: GetEventsParams
 ): Promise<EventsResponse> => {
+	console.log('Fetching events with params:', params);
     const response = await axiosInstance.get<EventsResponse>('/events', {
         params: {
             page: params?.page || 1,
@@ -36,6 +38,7 @@ export const createEvent = async (
     eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Event> => {
     const response = await axiosInstance.post<Event>('/events', eventData);
+	console.log('Create event response:', response.data);
     return response.data;
 };
 
@@ -49,5 +52,21 @@ export const deleteEvent = async (
 
 export const restoreEvent = async (id: number): Promise<{message: string}> => {
     const response = await axiosInstance.post(`/events/${id}/restore`);
+    return response.data;
+};
+
+export const updateEvent = async (
+    id: number,
+    eventData: Partial<Omit<Event, 'id' | 'createdAt' | 'updatedAt'>>
+): Promise<Event> => {
+    const response = await axiosInstance.put<Event>(
+        `/events/${id}`,
+        eventData
+    );
+    return response.data;
+};
+
+export const getMyEvents = async (): Promise<Event[]> => {
+    const response = await axiosInstance.get<Event[]>('/eventsmy');
     return response.data;
 };
