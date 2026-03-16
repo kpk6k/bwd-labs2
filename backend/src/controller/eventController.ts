@@ -53,9 +53,10 @@ import User from '../database/model/userModel.js';
 
 const getEvents = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 10, includeDeleted = 'false' } = req.query;
         const pageNumber = parseInt(page as string);
         const limitNumber = parseInt(limit as string);
+        const showDeleted = includeDeleted === 'true';
         if (pageNumber < 1 || limitNumber < 1) {
             return res
                 .status(400)
@@ -64,23 +65,46 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
 
         const offset = (pageNumber - 1) * limitNumber;
 
-        const events = await eventModel.findAndCountAll({
-            attributes: ['title', 'description', 'date'],
+        const queryOptions: any = {
+            attributes: [
+                'id',
+                'title',
+                'description',
+                'date',
+                'createdBy',
+                'deletedAt',
+            ],
             limit: limitNumber,
             offset: offset,
             include: [
                 {
                     model: User,
-                    attributes: ['name'],
+                    attributes: ['id', 'name'],
                 },
             ],
-        });
+            paranoid: !showDeleted,
+        };
+
+        if (showDeleted) {
+            queryOptions.order = [
+                ['deletedAt', 'ASC NULLS FIRST'],
+                ['createdAt', 'DESC'],
+            ];
+        }
+
+        const events = await eventModel.findAndCountAll(queryOptions);
+
+        const eventsWithStatus = events.rows.map((event) => ({
+            ...event.toJSON(),
+            isDeleted: event.deletedAt !== null,
+        }));
 
         return res.status(200).json({
             total: events.count,
             page: pageNumber,
             limit: limitNumber,
-            data: events.rows,
+            showDeleted: showDeleted,
+            data: eventsWithStatus,
         });
     } catch (e) {
         next(e);
@@ -417,7 +441,10 @@ const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { eventId } = req.params;
 
-        const event = await eventModel.findOne({ where: { id: eventId } });
+        const event = await eventModel.findOne({
+            where: { id: eventId },
+            paranoid: false,
+        });
 
         if (!event) {
             return res
@@ -425,14 +452,69 @@ const deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
                 .json({ message: `Event No. ${eventId} not found` });
         }
 
+        if (event.deletedAt) {
+            return res
+                .status(400)
+                .json({ message: `Event No. ${eventId} is already deleted` });
+        }
+
         await event.destroy();
 
-        return res
-            .status(200)
-            .json({ message: `Event No. ${eventId} deleted` });
+        return res.status(200).json({
+            message: `Event No. ${eventId} deleted (soft delete)`,
+            deletedAt: new Date(),
+        });
     } catch (err) {
         next(err);
     }
 };
 
-export { getEvents, getEvent, createEvent, updateEvent, deleteEvent };
+const restoreEvent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const { eventId } = req.params;
+
+        const event = await eventModel.findOne({
+            where: { id: eventId },
+            paranoid: false,
+        });
+
+        if (!event) {
+            return res
+                .status(400)
+                .json({ message: `Event No. ${eventId} not found` });
+        }
+
+        if (!event.deletedAt) {
+            return res
+                .status(400)
+                .json({ message: `Event No. ${eventId} is not deleted` });
+        }
+
+        await event.restore();
+
+        return res.status(200).json({
+            message: `Event No. ${eventId} restored`,
+            event: {
+                id: event.id,
+                title: event.title,
+                description: event.description,
+                date: event.date,
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export {
+    getEvents,
+    getEvent,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    restoreEvent,
+};

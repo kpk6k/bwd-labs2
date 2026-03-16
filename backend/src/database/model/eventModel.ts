@@ -42,9 +42,10 @@ interface EventAttributes {
     date: Date;
     createdBy: number;
     createdAt?: Date;
+    deletedAt?: Date | null;
 }
 
-type EventCreationAttributes = Optional<EventAttributes, 'id'>;
+type EventCreationAttributes = Optional<EventAttributes, 'id' | 'deletedAt'>;
 
 class eventModel
     extends Model<EventAttributes, EventCreationAttributes>
@@ -56,6 +57,7 @@ class eventModel
     public date!: Date;
     public createdBy!: number;
     public createdAt!: Date;
+    public deletedAt!: Date | null;
 }
 
 eventModel.init(
@@ -88,10 +90,19 @@ eventModel.init(
             },
             onDelete: 'CASCADE',
         },
+        deletedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            defaultValue: null,
+            field: 'deleted_at',
+        },
     },
     {
         sequelize,
         modelName: 'events',
+        paranoid: true,
+        timestamps: true,
+        deletedAt: 'deletedAt',
     },
 );
 
@@ -99,7 +110,7 @@ User.hasMany(eventModel, { foreignKey: 'createdBy' });
 eventModel.belongsTo(User, { foreignKey: 'createdBy' });
 
 sequelize
-    .sync()
+    .sync({ alter: true })
     .then(() => {
         console.log("Table 'events' created successfully!");
     })

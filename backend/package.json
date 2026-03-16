@@ -58,10 +58,14 @@
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.56.1"
     },
-	"lint-staged": {
-    	"src/**/*.{js,jsx,ts,tsx}": [
-      		"eslint --fix",
-      		"prettier --write"
-    	]
-	}
+    "lint-staged": {
+        "backend/src/**/*.ts": [
+            "npx eslint --fix",
+            "npx prettier --write"
+        ],
+        "frontend/src/**/*.{ts,tsx,scss}": [
+            "yarn run eslint --fix",
+            "yarn run prettier --write"
+        ]
+    }
 }

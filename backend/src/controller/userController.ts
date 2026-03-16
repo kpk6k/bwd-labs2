@@ -65,6 +65,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
             //failed_attempts: 0,
             //isLocked: false,
         });
+
         return res.status(201).json({
             name: newUser.name,
             email: newUser.email,
@@ -308,7 +309,7 @@ If this was you, no action is required. If not, please reset your password immed
 
         // Generate JWT token
         const token = jwt.sign(
-            { id: user.id, email: user.email },
+            { id: user.id, email: user.email, name: user.name },
             process.env.JWT_SECRET as string,
             {
                 expiresIn: '1h', // Token expires in 1 hour
