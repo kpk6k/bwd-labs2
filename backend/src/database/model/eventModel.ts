@@ -43,9 +43,10 @@ interface EventAttributes {
     createdBy: number;
     createdAt?: Date;
     deletedAt?: Date | null;
+	participants?: number[];
 }
 
-type EventCreationAttributes = Optional<EventAttributes, 'id' | 'deletedAt'>;
+type EventCreationAttributes = Optional<EventAttributes, 'id' | 'deletedAt' | 'participants'>;
 
 class eventModel
     extends Model<EventAttributes, EventCreationAttributes>
@@ -58,6 +59,7 @@ class eventModel
     public createdBy!: number;
     public createdAt!: Date;
     public deletedAt!: Date | null;
+	public participants!: number[];
 }
 
 eventModel.init(
@@ -95,6 +97,11 @@ eventModel.init(
             allowNull: true,
             defaultValue: null,
             field: 'deleted_at',
+        },
+		participants: {
+            type: DataTypes.JSON,
+            allowNull: false,
+            defaultValue: [],
         },
     },
     {

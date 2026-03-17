@@ -1,3 +1,10 @@
+export interface Participant {
+    id: number;
+    name: string;
+    email: string;
+    joinedAt?: string;
+}
+
 export interface Event {
     id: number;
     title: string;
@@ -10,4 +17,6 @@ export interface Event {
     user?: {
         name: string;
     };
+	participantsCount?: number;
+    participants?: Participant[];
 }

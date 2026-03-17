@@ -73,6 +73,7 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
                 'date',
                 'createdBy',
                 'deletedAt',
+				'participants',
             ],
             limit: limitNumber,
             offset: offset,
@@ -99,12 +100,21 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
             isDeleted: event.deletedAt !== null,
         }));
 
+		const formattedEvents = events.rows.map(event => {
+    		const eventJson = event.toJSON();
+    		return {
+        		...eventJson,
+        		participantsCount: eventJson.participants?.length || 0,
+        		participants: undefined 
+    		};
+		});
+
         return res.status(200).json({
             total: events.count,
             page: pageNumber,
             limit: limitNumber,
             showDeleted: showDeleted,
-            data: eventsWithStatus,
+            data: formattedEvents,
         });
     } catch (e) {
         next(e);
@@ -392,7 +402,8 @@ const updateEvent = async (req: Request, res: Response, next: NextFunction) => {
         event.date = date || event.date;
         await event.save();
 
-		const updatedEvent = await eventModel.findByPk(eventId, {
+		const updatedEvent = await eventModel.findOne({
+			where: {id: eventId},
             include: [
                 {
                     model: User,
@@ -535,7 +546,14 @@ const getMyEvents = async (
                 },
             ],
         });
-        res.status(200).json(events);
+		const eventsWithParticipants = events.map(event => {
+            const eventJson = event.toJSON();
+            return {
+                ...eventJson,
+                participantsCount: eventJson.participants?.length || 0,
+            };
+        });
+        res.status(200).json(eventsWithParticipants);
     } catch (err) {
         next(err);
     }

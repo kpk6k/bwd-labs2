@@ -212,10 +212,8 @@ const eventsSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchMyEvents.fulfilled, (state, action) => {
-				console.log('🔵 fetchMyEvents.fulfilled with payload:', action.payload);
                 state.loading = false;
                 state.myEvents = action.payload;
-				console.log('✅ myEvents set to:', state.myEvents);
             })
             .addCase(fetchMyEvents.rejected, (state, action) => {
                 state.loading = false;
