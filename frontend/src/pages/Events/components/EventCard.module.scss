@@ -40,6 +40,26 @@
   font-size: 0.9rem;
 }
 
+.buttonGroup {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.editButton {
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    &:hover {
+        background-color: #0056b3;
+    }
+}
+
 .deleteButtonContainer {
   position: absolute;
   bottom: 1rem;
@@ -141,4 +161,76 @@
   to {
     opacity: 1;
   }
+}
+
+// pages/Events/components/EventCard.module.scss - добавьте в конец файла
+
+.participantsSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+}
+
+.participantsCount {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    
+    &:hover {
+        text-decoration: underline;
+        background: rgba(0, 123, 255, 0.1);
+        border-radius: 4px;
+    }
+}
+
+.joinButton {
+    padding: 0.25rem 1rem;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    &:hover {
+        background-color: #218838;
+    }
+    
+    &.leaveButton {
+        background-color: #dc3545;
+        
+        &:hover {
+            background-color: #c82333;
+        }
+    }
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.editButton {
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    &:hover {
+        background-color: #0056b3;
+    }
 }

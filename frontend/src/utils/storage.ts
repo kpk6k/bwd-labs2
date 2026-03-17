@@ -1,3 +1,5 @@
+import type {User} from '../types/user';
+
 const ACCESS_TOKEN_KEY = 'accessToken';
 const USER_KEY = 'user';
 
@@ -7,7 +9,7 @@ export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 export const removeAccessToken = () =>
     localStorage.removeItem(ACCESS_TOKEN_KEY);
 
-export const setUser = (user: any) =>
+export const setUser = (user: User) =>
     localStorage.setItem(USER_KEY, JSON.stringify(user));
 export const getUser = () => {
     const userStr = localStorage.getItem(USER_KEY);

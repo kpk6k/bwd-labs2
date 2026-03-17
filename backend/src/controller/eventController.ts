@@ -73,6 +73,7 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
                 'date',
                 'createdBy',
                 'deletedAt',
+				'participants',
             ],
             limit: limitNumber,
             offset: offset,
@@ -99,12 +100,21 @@ const getEvents = async (req: Request, res: Response, next: NextFunction) => {
             isDeleted: event.deletedAt !== null,
         }));
 
+		const formattedEvents = events.rows.map(event => {
+    		const eventJson = event.toJSON();
+    		return {
+        		...eventJson,
+        		participantsCount: eventJson.participants?.length || 0,
+        		participants: undefined 
+    		};
+		});
+
         return res.status(200).json({
             total: events.count,
             page: pageNumber,
             limit: limitNumber,
             showDeleted: showDeleted,
-            data: eventsWithStatus,
+            data: formattedEvents,
         });
     } catch (e) {
         next(e);
@@ -260,12 +270,16 @@ const createEvent = async (req: Request, res: Response, next: NextFunction) => {
             createdBy,
         });
 
-        return res.status(201).json({
-            title: event.title,
-            description: event.description,
-            date: event.date,
-            createdAt: event.createdAt,
+		const eventWithUser = await eventModel.findByPk(event.id, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'name'],
+                },
+            ],
         });
+
+        return res.status(201).json(eventWithUser);
     } catch (err) {
         next(err);
     }
@@ -388,11 +402,17 @@ const updateEvent = async (req: Request, res: Response, next: NextFunction) => {
         event.date = date || event.date;
         await event.save();
 
-        return res.status(200).json({
-            title: event.title,
-            description: event.description,
-            date: event.date,
+		const updatedEvent = await eventModel.findOne({
+			where: {id: eventId},
+            include: [
+                {
+                    model: User,
+                    attributes: ['name'],
+                },
+            ],
         });
+
+        return res.status(200).json(updatedEvent);
     } catch (err) {
         next(err);
     }
@@ -510,6 +530,35 @@ const restoreEvent = async (
     }
 };
 
+const getMyEvents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+): Promise<void> => {
+    try {
+        const userId = (req.user as { id: number }).id;
+        const events = await eventModel.findAll({
+            where: { createdBy: userId },
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'name'],
+                },
+            ],
+        });
+		const eventsWithParticipants = events.map(event => {
+            const eventJson = event.toJSON();
+            return {
+                ...eventJson,
+                participantsCount: eventJson.participants?.length || 0,
+            };
+        });
+        res.status(200).json(eventsWithParticipants);
+    } catch (err) {
+        next(err);
+    }
+};
+
 export {
     getEvents,
     getEvent,
@@ -517,4 +566,5 @@ export {
     updateEvent,
     deleteEvent,
     restoreEvent,
+    getMyEvents,
 };
